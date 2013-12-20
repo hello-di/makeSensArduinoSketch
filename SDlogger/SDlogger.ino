@@ -14,6 +14,7 @@ SdVolume volume;
 SdFile root;
 const int chipSelect = 10;
 File logfile;
+char filename[] = "LOGGER00.CSV";
 
 // for the RTC clock
 #include<stdlib.h>
@@ -49,8 +50,8 @@ void setup()
   }
   Serial.println("card initialized.");
   
-   // create a new file
-  char filename[] = "LOGGER00.CSV";
+  // create a new file
+  /*
   for (uint8_t i = 0; i < 100; i++) {
     filename[6] = i/10 + '0';
     filename[7] = i%10 + '0';
@@ -63,25 +64,27 @@ void setup()
   if (!logfile) {
     Serial.println("couldnt create file");
   }
+  logfile.close();
   Serial.print("Logging to: ");
   Serial.println(filename);
   delay(1000);
+  */
 }
 
 void loop(void) {
-  uint32_t timeStamp;
+  //uint32_t timeStamp;
   
   // Sleep for 8 s with ADC module and BOD module off
-  LowPower.idle(SLEEP_1S, ADC_OFF, TIMER2_OFF, TIMER1_OFF, TIMER0_OFF,
-                SPI_OFF, USART0_OFF, TWI_OFF);
+  //LowPower.idle(SLEEP_120MS, ADC_OFF, TIMER2_OFF, TIMER1_OFF, TIMER0_OFF,
+                //SPI_OFF, USART0_OFF, TWI_OFF);
   // Do something here
   // Example: read sensor, log data, transmit data
-  getTime(&timeStamp);
+  //getTime(&timeStamp);
   //Serial.println(timeStamp);
-  write2SD(timeStamp);
+  //write2SD(timeStamp);
   
   //need this delay to allow enough time to print before goto sleep
-  //delay(100);
+  //delay(1);
 }
 
 void getTime(uint32_t* timeStamp) {    
@@ -93,7 +96,7 @@ void getTime(uint32_t* timeStamp) {
 
 void write2SD(uint32_t timeStamp) {
   // Start logging data
-
+  logfile = SD.open(filename, FILE_WRITE);
   // if the file is available, write to it:
   if (logfile) {
     //Serial.println(timeStamp);
@@ -102,5 +105,6 @@ void write2SD(uint32_t timeStamp) {
   } else { // if the file isn't open, pop up an error:
     Serial.println("error opening data.txt");
   }
+  logfile.close();
   delay(15);
 }
