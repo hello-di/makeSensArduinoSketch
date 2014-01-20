@@ -112,8 +112,8 @@ void aci_loop()
                 //all other ACI commands will have status code of ACI_STATUS_SCUCCESS for a successful command
                 Serial.print(F("ACI Command "));
                 Serial.println(aci_evt->params.cmd_rsp.cmd_opcode, HEX);
-                Serial.println(F("Evt Cmd respone: Error. Arduino is in an while(1); loop"));
-                while (1);
+                Serial.println(F("Evt Cmd respone: Error."));
+                //while (1);
             }
             if (ACI_CMD_GET_DEVICE_VERSION == aci_evt->params.cmd_rsp.cmd_opcode)
             {
@@ -224,11 +224,22 @@ void aci_loop()
   }
 }
 
+#define SYS_STATUS_INIT 0x01
+#define SYS_STATUS_SENSING 0x01
+#define SYS_STATUS_CONNECTING_BLE 0x02
+#define SYS_STATUS_TX 0x03
+#define SYS_STATUS_RX 0x04
+
+int system_status = SYS_STATUS_INIT;
 int i=0;
 void loop() {
-    aci_loop();
-    delay(100);
-    if (i>20 && i<22) lib_aci_device_version();
-    if (i>25 && i<27) lib_aci_get_address();
+    delay(200);
+
+    if (i == 10) lib_aci_sleep();
+    if (i == 25) lib_aci_wakeup();
+    if (i == 30) lib_aci_device_version();
+    if (i == 40) lib_aci_get_address();
     i++;
+    aci_loop();
+
 }
