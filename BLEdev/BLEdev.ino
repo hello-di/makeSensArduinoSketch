@@ -145,28 +145,28 @@ void aci_loop()
             lib_aci_device_version();
         break;
         
-      case ACI_EVT_PIPE_STATUS:
-        Serial.println(F("Evt Pipe Status"));
-        if (lib_aci_is_pipe_available(&aci_state, PIPE_UART_OVER_BTLE_UART_TX_TX) && (false == timing_change_done))
-        {
-          lib_aci_change_timing_GAP_PPCP(); // change the timing on the link as specified in the nRFgo studio -> nRF8001 conf. -> GAP. 
+        case ACI_EVT_PIPE_STATUS:
+            Serial.println(F("Evt Pipe Status"));
+            if (lib_aci_is_pipe_available(&aci_state, PIPE_UART_OVER_BTLE_UART_TX_TX) && (false == timing_change_done))
+            {
+                lib_aci_change_timing_GAP_PPCP(); // change the timing on the link as specified in the nRFgo studio -> nRF8001 conf. -> GAP. 
                                             // Used to increase or decrease bandwidth
-          timing_change_done = true;
-        }
-        if (lib_aci_is_pipe_available(&aci_state, PIPE_UART_OVER_BTLE_UART_TX_TX)) {
-          Serial.println("GGid ti ti");
-        }
+                timing_change_done = true;
+            }
+            if (lib_aci_is_pipe_available(&aci_state, PIPE_UART_OVER_BTLE_UART_TX_TX)) {
+                Serial.println("UART pipe over BLE is available");
+            }
         
         break;
         
-      case ACI_EVT_TIMING:
-        Serial.println(F("Evt link connection interval changed"));
+        case ACI_EVT_TIMING:
+            Serial.println(F("Evt link connection interval changed"));
         break;
         
-      case ACI_EVT_DISCONNECTED:
-        Serial.println(F("Evt Disconnected/Advertising timed out"));
-        lib_aci_connect(180/* in seconds */, 0x0100 /* advertising interval 100ms*/);
-        Serial.println(F("Advertising started"));
+        case ACI_EVT_DISCONNECTED:
+            Serial.println(F("Evt Disconnected/Advertising timed out"));
+            lib_aci_connect(180/* in seconds */, 0x0100 /* advertising interval 100ms*/);
+            Serial.println(F("Advertising started"));
         break;
         
       case ACI_EVT_DATA_RECEIVED:
