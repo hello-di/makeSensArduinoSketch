@@ -169,33 +169,32 @@ void aci_loop()
             Serial.println(F("Advertising started"));
         break;
         
-      case ACI_EVT_DATA_RECEIVED:
-        Serial.print(F("UART RX: 0x"));
-        Serial.print(aci_evt->params.data_received.rx_data.pipe_number, HEX);
-        {
-          Serial.print(F(" Data(Hex) : "));
-          for(int i=0; i<aci_evt->len - 2; i++)
-          {
-            Serial.print(aci_evt->params.data_received.rx_data.aci_data[i], HEX);
-            uart_buffer[i] = aci_evt->params.data_received.rx_data.aci_data[i];
-            Serial.print(F(" "));
-          }
-          uart_buffer_len = aci_evt->len - 2;
-        }
-        Serial.println(F(""));
-        //if (uart_buffer[0] == 'a' && uart_buffer[1] == 'b'){
-        Serial.print(F("I got the request"));
-        //if (lib_aci_is_pipe_available(&aci_state, PIPE_UART_OVER_BTLE_UART_TX_TX))
-        //{
-        //  uart_buffer_len = 10;
-        //  uart_buffer[0] = datax;
-        //  uart_buffer[1] = datax;
-        //  uart_buffer[2] = datax;
-        //  uart_buffer[3] = datax;
-        //  uart_buffer[4] = datax; 
-        //  uart_tx();
-        //}
-          
+        case ACI_EVT_DATA_RECEIVED:
+            Serial.print(F("UART RX: 0x"));
+            Serial.print(aci_evt->params.data_received.rx_data.pipe_number, HEX);
+            {
+                Serial.print(F(" Data(Hex) : "));
+                for(int i=0; i<aci_evt->len - 2; i++)
+                {
+                    Serial.print(aci_evt->params.data_received.rx_data.aci_data[i], HEX);
+                    uart_buffer[i] = aci_evt->params.data_received.rx_data.aci_data[i];
+                    Serial.print(F(" "));
+                } 
+                uart_buffer_len = aci_evt->len - 2;
+            }
+            Serial.println(F(""));
+            //if (uart_buffer[0] == 'a' && uart_buffer[1] == 'b'){
+            Serial.print(F("I got the request"));
+            //if (lib_aci_is_pipe_available(&aci_state, PIPE_UART_OVER_BTLE_UART_TX_TX))
+            //{
+            //  uart_buffer_len = 10;
+            //  uart_buffer[0] = datax;
+            //  uart_buffer[1] = datax;
+            //  uart_buffer[2] = datax;
+            //  uart_buffer[3] = datax;
+            //  uart_buffer[4] = datax; 
+            //  uart_tx();
+            //}
         break;
    
       case ACI_EVT_DATA_CREDIT:
