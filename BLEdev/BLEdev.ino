@@ -16,6 +16,14 @@
     static services_pipe_type_mapping_t * services_pipe_type_mapping = NULL;
 #endif
 
+#define SYS_STATUS_INIT 0x01
+#define SYS_STATUS_SENSING 0x01
+#define SYS_STATUS_CONNECTED_BLE 0x02
+#define SYS_STATUS_TX 0x03
+#define SYS_STATUS_RX 0x04
+
+int system_status = SYS_STATUS_INIT;
+
 // === Global variable definition part ===
 // aci_struct that will contain 
 // total initial credits
@@ -75,6 +83,7 @@ void aci_loop()
   if (lib_aci_event_get(&aci_state, &aci_data))
   {
     aci_evt_t * aci_evt;
+    Serial.println(F("There is an ACI Events available"));
     
     aci_evt = &aci_data.evt;
     switch(aci_evt->evt_opcode)
@@ -143,6 +152,7 @@ void aci_loop()
             aci_state.data_credit_available = aci_state.data_credit_total;
             // Get the device version of the nRF8001 and store it in the Hardware Revision String
             lib_aci_device_version();
+            system_status = SYS_STATUS_CONNECTED_BLE;
         break;
         
         case ACI_EVT_PIPE_STATUS:
@@ -183,35 +193,27 @@ void aci_loop()
                 uart_buffer_len = aci_evt->len - 2;
             }
             Serial.println(F(""));
-            //if (uart_buffer[0] == 'a' && uart_buffer[1] == 'b'){
             Serial.print(F("I got the request"));
-            //if (lib_aci_is_pipe_available(&aci_state, PIPE_UART_OVER_BTLE_UART_TX_TX))
-            //{
-            //  uart_buffer_len = 10;
-            //  uart_buffer[0] = datax;
-            //  uart_buffer[1] = datax;
-            //  uart_buffer[2] = datax;
-            //  uart_buffer[3] = datax;
-            //  uart_buffer[4] = datax; 
-            //  uart_tx();
-            //}
         break;
    
-      case ACI_EVT_DATA_CREDIT:
-        aci_state.data_credit_available = aci_state.data_credit_available + aci_evt->params.data_credit.credit;
+        case ACI_EVT_DATA_CREDIT:
+            aci_state.data_credit_available = aci_state.data_credit_available + aci_evt->params.data_credit.credit;
         break;
       
-      case ACI_EVT_PIPE_ERROR:
-        //See the appendix in the nRF8001 Product Specication for details on the error codes
-        Serial.print(F("ACI Evt Pipe Error: Pipe #:"));
-        Serial.print(aci_evt->params.pipe_error.pipe_number, DEC);
-        Serial.print(F("  Pipe Error Code: 0x"));
-        Serial.println(aci_evt->params.pipe_error.error_code, HEX);
+        case ACI_EVT_PIPE_ERROR:
+            //See the appendix in the nRF8001 Product Specication for details on the error codes
+            Serial.print(F("ACI Evt Pipe Error: Pipe #:"));
+            Serial.print(aci_evt->params.pipe_error.pipe_number, DEC);
+            Serial.print(F("  Pipe Error Code: 0x"));
+            Serial.println(aci_evt->params.pipe_error.error_code, HEX);
                 
-        //Increment the credit available as the data packet was not sent
-        aci_state.data_credit_available++;
+            //Increment the credit available as the data packet was not sent
+            aci_state.data_credit_available++;
         break;
-           
+        
+        default:
+            Serial.println("Unrecognized Event");
+        break;      
     }
   }
   else
@@ -223,22 +225,23 @@ void aci_loop()
   }
 }
 
-#define SYS_STATUS_INIT 0x01
-#define SYS_STATUS_SENSING 0x01
-#define SYS_STATUS_CONNECTING_BLE 0x02
-#define SYS_STATUS_TX 0x03
-#define SYS_STATUS_RX 0x04
+void uart_tx()
+{
+  lib_aci_send_data(PIPE_UART_OVER_BTLE_UART_TX_TX, uart_buffer, uart_buffer_len);
+  aci_state.data_credit_available--;
+}
 
-int system_status = SYS_STATUS_INIT;
-int i=0;
 void loop() {
-    delay(200);
+    uart_buffer[0] = 'a';
+    uart_buffer_len = 1;
 
-    if (i == 10) lib_aci_sleep();
-    if (i == 25) lib_aci_wakeup();
-    if (i == 30) lib_aci_device_version();
-    if (i == 40) lib_aci_get_address();
-    i++;
+    delay(500);
+
+    if (system_status == SYS_STATUS_CONNECTED_BLE) {
+        Serial.print("Transmitting uart_tx ");
+        uart_tx();
+        system_status = SYS_STATUS_INIT;
+    }
+
     aci_loop();
-
 }
