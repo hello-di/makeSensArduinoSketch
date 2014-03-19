@@ -19,14 +19,6 @@
     static services_pipe_type_mapping_t * services_pipe_type_mapping = NULL;
 #endif
 
-#define SYS_STATUS_INIT 0x01
-#define SYS_STATUS_SENSING 0x01
-#define SYS_STATUS_CONNECTED_BLE 0x02
-#define SYS_STATUS_TX 0x03
-#define SYS_STATUS_RX 0x04
-
-int system_status = SYS_STATUS_INIT;
-
 // === Global variable definition part ===
 // aci_struct that will contain 
 // total initial credits
@@ -198,7 +190,6 @@ void aci_loop()
             aci_state.data_credit_available = aci_state.data_credit_total;
             // Get the device version of the nRF8001 and store it in the Hardware Revision String
             lib_aci_device_version();
-            system_status = SYS_STATUS_CONNECTED_BLE;
         break;
         
         case ACI_EVT_PIPE_STATUS:
@@ -271,8 +262,55 @@ void aci_loop()
   }
 }
 
+int status_change(){
+    sprtln("status change");
+}
+
+/* System status definition */
+typedef enum
+{
+    SYS_STATUS_PWRDOWN = 0x00,
+    SYS_STATUS_INIT = 0x01,
+    SYS_STATUS_RECORDDING_UNCONNECTED = 0x02,
+    SYS_STATUS_RECORDDING_CONNECTED = 0x03,
+    SYS_STATUS_TRANSMISSION = 0x04
+} system_status_enum;
+
+/* System event definition */
+typedef enum
+{
+    SYS_EVENT_PWRON = 0x00,
+    SYS_EVENT_INIT_OK = 0x01,
+    SYS_EVENT_INIT_ERROR = 0x02,
+    SYS_EVENT_BLE_CONNECT_INTERRUPT = 0x03,
+    SYS_EVENT_BLE_CONNECT_TIMEOUT = 0x04,
+    SYS_EVENT_BLE_TRANS_REQ = 0x05,
+    SYS_EVENT_BLE_TRANS_COMPLETE = 0x04
+} system_event_enum;
+
+
+bool System_init();
+bool System_IR1();
+bool System_trans();
+bool System_complete();
+
+/* 
+    system finite state machine matrix
+*/
+bool (*MATRIX_global_FSM[2][2])() = {
+/* System Status: SYS_EVENT_PWRON   |   SYS_EVENT_INIT_OK   |   SYS_EVENT_INIT_ERROR    |   ...*/
+    {System_init, System_IR1},
+    {System_trans, System_complete},
+};
+
 int i=0;
 void loop() {
+    system_status_enum system_status;
+
+    int (*pfunc[2])();
+    (pfunc)[1] = status_change;
+    (*pfunc[1])();
+
     delay(100);
 
     //if (i == 10) lib_aci_sleep();
