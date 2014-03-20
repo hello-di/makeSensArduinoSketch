@@ -410,11 +410,15 @@ void loop() {
   getAccData(accSensorData);
   aci_loop(64, &isReady);
   delay(100);
+  
+  Serial.println(4.9 * analogRead(0));
+
   if (isReady == 1) {
     
     // send out acc data
     uart_buffer_len = 13;
-    tempReading1.floatingPoint = accSensorData[0];
+    //tempReading1.floatingPoint = accSensorData[0];
+    tempReading1.floatingPoint = 4.9 * analogRead(0);
     tempReading2.floatingPoint = accSensorData[1];
     tempReading3.floatingPoint = accSensorData[2];
     
