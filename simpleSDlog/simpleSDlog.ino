@@ -1,5 +1,9 @@
 #include <Wire.h>
 
+// include timer library
+#include "Timer.h"
+Timer t;
+
 // for the SD card
 // include the SD library:
 #include <SD.h>
@@ -20,8 +24,8 @@
 #undef DEBUG_FLAG
 #endif
 
-//#undef DEBUG_FLAG
-#define DEBUG_FLAG 1
+#undef DEBUG_FLAG
+//#define DEBUG_FLAG 1
 
 #ifdef DEBUG_FLAG
 #define DBPRINT(x) Serial.println(x)
@@ -91,10 +95,12 @@ void setup()
     }
 
     DBPRINT("Init done");
+
+    t.every(5, takeReading);
 }
 
-//int cnt = 0;
-void loop(void) {
+void takeReading()
+{
     int tempRead;
 
     tempRead = analogRead(0);
@@ -104,13 +110,21 @@ void loop(void) {
     analogData[buffer_count] = tempRead >> 8;
     buffer_count = buffer_count + 1;
 
+    timer = millis();
+    DBPRINT(timer);
+}
+
+//int cnt = 0;
+void loop(void) {
+    t.update();
+
     // TIME TEST
     if (buffer_count == BUFFER_SIZE) {
         DateTime now = RTC.now();
 
         logfile = SD.open(filename, FILE_WRITE);
         logfile.write(analogData,BUFFER_SIZE);
-        DBPRINT(logfile.size());
+        DBPRINT("write file");
 
         logfile.close();
                 
