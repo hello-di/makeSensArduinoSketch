@@ -94,7 +94,7 @@ static bool timing_change_done = false;
 static uint8_t uart_buffer[20];
 static uint8_t uart_buffer_len = 0;
 
-void aci_loop()
+void aci_loop(int *flag)
 {
   
   // We enter the if statement only when there is a ACI event available to be processed
@@ -202,6 +202,7 @@ void aci_loop()
             }
             if (lib_aci_is_pipe_available(&aci_state, PIPE_UART_OVER_BTLE_UART_TX_TX)) {
                 sprtln("UART pipe over BLE is available");
+                *flag = 1;
             }
         
         break;
@@ -214,6 +215,7 @@ void aci_loop()
             sprtln(F("Evt Disconnected/Advertising timed out"));
             lib_aci_connect(180/* in seconds */, 0x0100 /* advertising interval 100ms*/);
             sprtln(F("Advertising started"));
+            *flag = 0;
         break;
         
         case ACI_EVT_DATA_RECEIVED:
@@ -263,7 +265,7 @@ void aci_loop()
 }
 
 int status_change(){
-    sprtln("status change");
+    //sprtln("status change");
 }
 
 /* System status definition */
@@ -304,21 +306,53 @@ bool (*MATRIX_global_FSM[2][2])() = {
 };
 
 int i=0;
+
+typedef union {
+  float floatingPoint;
+  byte binary[4];
+} binaryFloat;
+
+void uart_tx()
+{
+  lib_aci_send_data(PIPE_UART_OVER_BTLE_UART_TX_TX, uart_buffer, uart_buffer_len);
+  aci_state.data_credit_available--;
+}
+
+int isReady;
+
 void loop() {
+
     system_status_enum system_status;
+    binaryFloat tempReading1;
 
     int (*pfunc[2])();
     (pfunc)[1] = status_change;
     (*pfunc[1])();
 
-    delay(100);
+    delay(500);
+
 
     //if (i == 10) lib_aci_sleep();
     //if (i == 25) lib_aci_wakeup();
-    if (i == 30) lib_aci_device_version();
-    if (i == 40) lib_aci_get_address();
-    if (i == 45) lib_aci_get_temperature();
-    if (i == 50) lib_aci_read_dynamic_data();
+    //if (i == 30) lib_aci_device_version();
+    //if (i == 40) lib_aci_get_address();
+    //if (i == 45) lib_aci_get_temperature();
+    //if (i == 50) lib_aci_read_dynamic_data();
     i++;
-    aci_loop();
+
+    aci_loop(&isReady);
+    Serial.print(isReady);
+
+    if (isReady == 1) {
+        tempReading1.floatingPoint = 4.9 * analogRead(0);
+        uart_buffer_len = 5;
+        uart_buffer[0] = 'm';
+        uart_buffer[1] = tempReading1.binary[0];
+        uart_buffer[2] = tempReading1.binary[1];
+        uart_buffer[3] = tempReading1.binary[2];
+        uart_buffer[4] = tempReading1.binary[3];
+        uart_tx();
+        Serial.print("hello");
+    }
+
 }

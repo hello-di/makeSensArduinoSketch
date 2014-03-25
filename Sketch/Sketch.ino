@@ -375,7 +375,7 @@ void loop() {
     
     // send out mag data
     uart_buffer_len = 13;
-    tempReading1.floatingPoint = magSensorData[0];
+    tempReading1.floatingPoint = 4.9 * analogRead(0);
     tempReading2.floatingPoint = magSensorData[1];
     tempReading3.floatingPoint = magSensorData[2];
     
