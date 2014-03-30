@@ -28,7 +28,7 @@ void setup()
     //Adafruit_LSM303_Mag mag = Adafruit_LSM303_Mag(12345);
 
     // Open serial communications and wait for port to open:
-    Serial.begin(9600);
+    Serial.begin(115200);
     Wire.begin();
     
     RTC.begin();

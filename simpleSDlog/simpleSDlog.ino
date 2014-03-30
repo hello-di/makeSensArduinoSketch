@@ -28,34 +28,56 @@ Timer t;
 //#define DEBUG_FLAG 1
 
 #ifdef DEBUG_FLAG
-#define DBPRINT(x) Serial.println(x)
+#define DBPRINT(x) Serial.println(F(x))
 #else
 #define DBPRINT ;
 #endif
 
-// #define constants
-#define BUFFER_SIZE 64
-
-uint8_t analogData[BUFFER_SIZE];
-
-int buffer_count = 0;
 RTC_DS1307 RTC;
 unsigned long timer;
 File logfile;
-char filename[] = "DATA00.BIN";
+char filename[] = "DATA00.DAT";
+
+#define TIME_STAMP 0x01
+#define ACC_TYPE 0x02
+#define PULSE_TYPE 0x03
+#define RECORD_ARRAY_SIZE 10
+
+typedef struct {
+    uint32_t    timeStamp;
+    uint8_t     dataType;
+    float       sensorXaxis;
+    float       sensorYaxis;
+    float       sensorZaxis;
+} record_t;
+
+static record_t recordArray[RECORD_ARRAY_SIZE];
+int recordCount;
+
+#include <Adafruit_Sensor.h>
+#include <Adafruit_LSM303.h>
+Adafruit_LSM303_Accel accel = Adafruit_LSM303_Accel(54321);
 
 void setup()
 {
     Serial.begin(115200);
     Wire.begin();
-    
+
     // Real time clock init
-    RTC_DS1307 RTC;
     RTC.begin();
     if (! RTC.isrunning()) {
+        DBPRINT("RTC error");
         while(1);
     } else {
         DBPRINT("RTC done");
+    }
+
+    if(!accel.begin())
+    {
+        DBPRINT("Acc failed");
+        /* There was a problem detecting the ADXL345 ... check your connections */
+        //Serial.println(F("Ooops, no LSM303 detected ... Check your wiring!"));
+        while(1);
     }
 
     // SD card init
@@ -73,68 +95,111 @@ void setup()
         DBPRINT("SD card done");
     }
 
-    // init buffer count
-    for (buffer_count = 0; buffer_count<BUFFER_SIZE; buffer_count++) {
-        analogData[buffer_count] = 0;
-    }
-
-    buffer_count = 0;
-
     for (uint8_t i = 0; i < 100; i++) {
         filename[4] = i/10 + '0';
         filename[5] = i%10 + '0';
         if (! SD.exists(filename)) {
             // only open a new file if it doesn't exist
             logfile = SD.open(filename, FILE_WRITE);
-            logfile.close();
+            //logfile.close();
             break; // leave the loop!
         }
     }
+
+    //logfile = SD.open("HELLO.TES", FILE_WRITE);
+
     if (! logfile) {
         DBPRINT("couldnt create file");
     }
 
+    logfile.close();
+    
     DBPRINT("Init done");
 
-    t.every(5, takeReading);
+    attachInterrupt(1, recordPulse, FALLING);//set interrupt 0,digital port 2
+    
+    t.every(1000, programRecord);
+    t.every(250, recordAcc);
 }
 
-void takeReading()
+void programRecord()
 {
-    int tempRead;
+    uint32_t local_timeStamp;
+    local_timeStamp = RTC.now().unixtime();
+    delay(10);
 
-    tempRead = analogRead(0);
-    //Serial.println(tempRead, HEX);
-    analogData[buffer_count] = tempRead;
-    buffer_count = buffer_count + 1;
-    analogData[buffer_count] = tempRead >> 8;
-    buffer_count = buffer_count + 1;
+    // make a string for assembling the data to log:
+    logfile = SD.open(filename, FILE_WRITE);
 
-    timer = millis();
-    DBPRINT(timer);
+    if (! logfile) {
+        DBPRINT("couldnt open file");
+    }
+
+    logfile.print(TIME_STAMP);
+    logfile.print(",");
+    logfile.println(local_timeStamp);
+    
+    for (int i=0; i<recordCount; i++){
+
+        logfile.print(recordArray[i].dataType);
+        
+        if (recordArray[i].dataType == ACC_TYPE){
+            DBPRINT("pgm acc");
+            logfile.print(",");
+            logfile.print(recordArray[i].sensorXaxis);
+            logfile.print(",");
+            logfile.print(recordArray[i].sensorYaxis);
+            logfile.print(",");
+            logfile.println(recordArray[i].sensorYaxis);
+        } else if (recordArray[i].dataType == PULSE_TYPE) {
+            DBPRINT("pgm pulse");
+            logfile.print("\n");
+        } else {
+            DBPRINT("Error pgm!");
+        }
+        
+    }
+
+    logfile.close();
+    recordCount = 0;
+
+    delay(50);
+}
+
+void recordPulse() 
+{
+    if (recordCount<RECORD_ARRAY_SIZE) {
+        DBPRINT("read pulse");
+        recordArray[recordCount].timeStamp = 0;
+        recordArray[recordCount].dataType = PULSE_TYPE;
+        recordCount = recordCount + 1;
+    } else {
+        DBPRINT("record array overflow");
+    }
+}
+
+void recordAcc()
+{    
+    sensors_event_t eventAcc; 
+    accel.getEvent(&eventAcc);
+
+    if (recordCount<RECORD_ARRAY_SIZE) {
+        DBPRINT("read time");
+        DBPRINT(recordCount);
+        recordArray[recordCount].timeStamp = 0;
+        recordArray[recordCount].dataType = ACC_TYPE;
+        recordArray[recordCount].sensorXaxis = eventAcc.acceleration.x;
+        recordArray[recordCount].sensorYaxis = eventAcc.acceleration.y;
+        recordArray[recordCount].sensorZaxis = eventAcc.acceleration.z;
+        recordCount = recordCount + 1;
+    } else {
+        DBPRINT("record array overflow");
+    }
 }
 
 //int cnt = 0;
 void loop(void) {
     t.update();
-
     // TIME TEST
-    if (buffer_count == BUFFER_SIZE) {
-        DateTime now = RTC.now();
-
-        logfile = SD.open(filename, FILE_WRITE);
-        logfile.write(analogData,BUFFER_SIZE);
-        DBPRINT("write file");
-
-        logfile.close();
-                
-        //timer = millis();
-        //Serial.println(timer);
-        buffer_count = 0;
-        //logfile.println(now.unixtime());
-
-        //cnt = cnt + 1;
-        //if (cnt == 10) while(1);
-    }
 }
 
