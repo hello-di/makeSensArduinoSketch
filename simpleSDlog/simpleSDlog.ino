@@ -1,11 +1,17 @@
+// === General debug setup ===
+#include "debug_setup.h"
+
+// === BLE part include ===
+#include "BLEpart.h"
+
+//=== Start of code ======
 #include <Wire.h>
 
 // include timer library
 #include "Timer.h"
 Timer t;
 
-// for the SD card
-// include the SD library:
+// for the SD card include the SD library:
 #include <SD.h>
 #include <SPI.h>
 #include <avr/pgmspace.h>
@@ -14,27 +20,7 @@ Timer t;
 #include <stdlib.h>
 #include "RTClib.h"
 
-// set up variables using the SD utility library functions:
-//Sd2Card card;
-//SdVolume volume;
-//SdFile root;
-
-// Debug info
-#ifdef DEBUG_FLAG
-#undef DEBUG_FLAG
-#endif
-
-#undef DEBUG_FLAG
-//#define DEBUG_FLAG 1
-
-#ifdef DEBUG_FLAG
-#define DBPRINT(x) Serial.println(F(x))
-#else
-#define DBPRINT ;
-#endif
-
 RTC_DS1307 RTC;
-unsigned long timer;
 File logfile;
 char filename[] = "DATA00.DAT";
 
@@ -57,70 +43,6 @@ int recordCount;
 #include <Adafruit_Sensor.h>
 #include <Adafruit_LSM303.h>
 Adafruit_LSM303_Accel accel = Adafruit_LSM303_Accel(54321);
-
-void setup()
-{
-    Serial.begin(115200);
-    Wire.begin();
-
-    // Real time clock init
-    RTC.begin();
-    if (! RTC.isrunning()) {
-        DBPRINT("RTC error");
-        while(1);
-    } else {
-        DBPRINT("RTC done");
-    }
-
-    if(!accel.begin())
-    {
-        DBPRINT("Acc failed");
-        /* There was a problem detecting the ADXL345 ... check your connections */
-        //Serial.println(F("Ooops, no LSM303 detected ... Check your wiring!"));
-        while(1);
-    }
-
-    // SD card init
-    // make sure that the default chip select pin is set to
-    // output, even if you don't use it:
-    //Serial.print(F("Initializing SD card..."));
-    pinMode(10, OUTPUT);
-
-    // see if the card is present and can be initialized:
-    if (!SD.begin(10)) {
-        DBPRINT("Card failed");
-        // don't do anything more:
-        while(1);
-    } else {
-        DBPRINT("SD card done");
-    }
-
-    for (uint8_t i = 0; i < 100; i++) {
-        filename[4] = i/10 + '0';
-        filename[5] = i%10 + '0';
-        if (! SD.exists(filename)) {
-            // only open a new file if it doesn't exist
-            logfile = SD.open(filename, FILE_WRITE);
-            //logfile.close();
-            break; // leave the loop!
-        }
-    }
-
-    //logfile = SD.open("HELLO.TES", FILE_WRITE);
-
-    if (! logfile) {
-        DBPRINT("couldnt create file");
-    }
-
-    logfile.close();
-    
-    DBPRINT("Init done");
-
-    attachInterrupt(1, recordPulse, FALLING);//set interrupt 0,digital port 2
-    
-    t.every(1000, programRecord);
-    t.every(250, recordAcc);
-}
 
 void programRecord()
 {
@@ -197,9 +119,107 @@ void recordAcc()
     }
 }
 
-//int cnt = 0;
+void setup()
+{
+    Serial.begin(115200);
+    Wire.begin();
+
+#ifdef BLE_CODE
+    /** Point ACI data structures to the the setup data that the nRFgo studio generated for the nRF8001 */ 
+    if (services_pipe_type_mapping != NULL ) {
+        aci_state.aci_setup_info.services_pipe_type_mapping = &services_pipe_type_mapping[0];
+    } else {
+        aci_state.aci_setup_info.services_pipe_type_mapping = NULL;
+    }
+  
+    aci_state.aci_setup_info.number_of_pipes    = NUMBER_OF_PIPES;
+    aci_state.aci_setup_info.setup_msgs         = setup_msgs;
+    aci_state.aci_setup_info.num_setup_msgs     = NB_SETUP_MESSAGES;
+    
+    //We reset the nRF8001 here by toggling the RESET line connected to the nRF8001
+    //and initialize the data structures required to setup the nRF8001
+    lib_aci_init(&aci_state);
+#endif
+
+    // Real time clock init
+    RTC.begin();
+    if (! RTC.isrunning()) {
+        DBPRINT("RTC err");
+        while(1);
+    } else {
+        DBPRINT("RTC done");
+    }
+
+    if(!accel.begin())
+    {
+        /* There was a problem detecting the ADXL345 ... check your connections */
+        DBPRINT("Acc fail");
+        while(1);
+    }
+
+    // SD card init
+    // make sure that the default chip select pin is set to
+    // output, even if you don't use it:
+    //Serial.print(F("Initializing SD card..."));
+    pinMode(10, OUTPUT);
+
+    // see if the card is present and can be initialized:
+    if (!SD.begin(10)) {
+        DBPRINT("SD fail");
+        // don't do anything more:
+        while(1);
+    } else {
+        DBPRINT("SD done");
+    }
+
+    for (uint8_t i = 0; i < 100; i++) {
+        filename[4] = i/10 + '0';
+        filename[5] = i%10 + '0';
+        if (! SD.exists(filename)) {
+            // only open a new file if it doesn't exist
+            logfile = SD.open(filename, FILE_WRITE);
+            //logfile.close();
+            break; // leave the loop!
+        }
+    }
+
+    //logfile = SD.open("HELLO.TES", FILE_WRITE);
+
+    if (! logfile) {
+        DBPRINT("cant new file");
+    }
+
+    logfile.close();
+    
+    DBPRINT("Init done");
+
+    attachInterrupt(1, recordPulse, FALLING);//set interrupt 0,digital port 3
+    
+    t.every(1000, programRecord);
+    t.every(250, recordAcc);
+}
+
 void loop(void) {
     t.update();
     // TIME TEST
+
+#ifdef BLE_CODE
+    aci_loop(&isReady);
+    DBPRINT(isReady);
+
+    binaryFloat tempReading1;
+
+    if (isReady == 1) {
+        tempReading1.floatingPoint = 4.9 * analogRead(0);
+        uart_buffer_len = 5;
+        uart_buffer[0] = 'm';
+        uart_buffer[1] = tempReading1.binary[0];
+        uart_buffer[2] = tempReading1.binary[1];
+        uart_buffer[3] = tempReading1.binary[2];
+        uart_buffer[4] = tempReading1.binary[3];
+        uart_tx();
+    }
+#endif
+
 }
 
