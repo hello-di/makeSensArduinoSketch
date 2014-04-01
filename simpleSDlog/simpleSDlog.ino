@@ -22,7 +22,7 @@ Timer t;
 
 RTC_DS1307 RTC;
 File logfile;
-char filename[] = "DATA00.DAT";
+char filename[] = "D00.D";
 
 #define TIME_STAMP 0x01
 #define ACC_TYPE 0x02
