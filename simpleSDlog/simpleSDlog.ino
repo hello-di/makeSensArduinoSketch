@@ -173,8 +173,8 @@ void setup()
     }
 
     for (uint8_t i = 0; i < 100; i++) {
-        filename[2] = i/10 + '0';
-        filename[3] = i%10 + '0';
+        filename[1] = i/10 + '0';
+        filename[2] = i%10 + '0';
         if (! SD.exists(filename)) {
             // only open a new file if it doesn't exist
             logfile = SD.open(filename, FILE_WRITE);
