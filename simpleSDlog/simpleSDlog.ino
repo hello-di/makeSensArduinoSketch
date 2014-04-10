@@ -46,8 +46,6 @@ Adafruit_LSM303_Accel accel = Adafruit_LSM303_Accel(54321);
 
 void programRecord()
 {
-    uint32_t local_timeStamp;
-    local_timeStamp = RTC.now().unixtime();
     delay(10);
 
     // make a string for assembling the data to log:
@@ -59,8 +57,8 @@ void programRecord()
 
     logfile.print(TIME_STAMP);
     logfile.print(",");
-    logfile.println(local_timeStamp);
-    
+    logfile.println(RTC.now().unixtime());
+
     for (int i=0; i<recordCount; i++){
 
         logfile.print(recordArray[i].dataType);
@@ -106,7 +104,7 @@ void recordAcc()
     accel.getEvent(&eventAcc);
 
     if (recordCount<RECORD_ARRAY_SIZE) {
-        DBPRINT("read time");
+        DBPRINT("read acc");
         DBPRINT(recordCount);
         recordArray[recordCount].timeStamp = 0;
         recordArray[recordCount].dataType = ACC_TYPE;
@@ -124,28 +122,11 @@ void setup()
     Serial.begin(115200);
     Wire.begin();
 
-#ifdef BLE_CODE
-    /** Point ACI data structures to the the setup data that the nRFgo studio generated for the nRF8001 */ 
-    if (services_pipe_type_mapping != NULL ) {
-        aci_state.aci_setup_info.services_pipe_type_mapping = &services_pipe_type_mapping[0];
-    } else {
-        aci_state.aci_setup_info.services_pipe_type_mapping = NULL;
-    }
-  
-    aci_state.aci_setup_info.number_of_pipes    = NUMBER_OF_PIPES;
-    aci_state.aci_setup_info.setup_msgs         = setup_msgs;
-    aci_state.aci_setup_info.num_setup_msgs     = NB_SETUP_MESSAGES;
-    
-    //We reset the nRF8001 here by toggling the RESET line connected to the nRF8001
-    //and initialize the data structures required to setup the nRF8001
-    lib_aci_init(&aci_state);
-#endif
-
     // Real time clock init
     RTC.begin();
     if (! RTC.isrunning()) {
         DBPRINT("RTC err");
-        while(1);
+        //while(1);
     } else {
         DBPRINT("RTC done");
     }
@@ -197,6 +178,23 @@ void setup()
     
     t.every(1000, programRecord);
     t.every(250, recordAcc);
+
+#ifdef BLE_CODE
+    /** Point ACI data structures to the the setup data that the nRFgo studio generated for the nRF8001 */ 
+    if (services_pipe_type_mapping != NULL ) {
+        aci_state.aci_setup_info.services_pipe_type_mapping = &services_pipe_type_mapping[0];
+    } else {
+        aci_state.aci_setup_info.services_pipe_type_mapping = NULL;
+    }
+  
+    aci_state.aci_setup_info.number_of_pipes    = NUMBER_OF_PIPES;
+    aci_state.aci_setup_info.setup_msgs         = setup_msgs;
+    aci_state.aci_setup_info.num_setup_msgs     = NB_SETUP_MESSAGES;
+    
+    //We reset the nRF8001 here by toggling the RESET line connected to the nRF8001
+    //and initialize the data structures required to setup the nRF8001
+    lib_aci_init(&aci_state);
+#endif
 }
 
 void loop(void) {
