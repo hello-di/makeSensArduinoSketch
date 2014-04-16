@@ -1,0 +1,5 @@
+AccelerometerClass	KEYWORD1
+read	KEYWORD2
+
+DatabaseClass	KEYWORD1
+newCollection	KEYWORD2
