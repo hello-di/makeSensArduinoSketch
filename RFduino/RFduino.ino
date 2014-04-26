@@ -4,9 +4,12 @@ Simply remove what you dont need, and fill in the rest.
 */
 #include <RFduinoBLE.h>
 #include "debug_setup.h"
+#include <Wire.h>
 #include <SD.h>
 #include <SPI.h>
 #include <stdlib.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_LSM303.h>
 
 // the Database for recording
 #include "DatabaseClass.h"
@@ -17,6 +20,8 @@ DatabaseClass Database;
 void setup()
 {
     Serial.begin(9600);
+    //Wire.begin();
+    //Wire.beginOnPins(0, 1);
     DBPRINTLN("Starting RFduino");
 
     // Start database

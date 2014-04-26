@@ -9,6 +9,8 @@ DatabaseClass::DatabaseClass(){
 
     _stepCounter = 0;
     _fakeRTC = 0;
+
+    _accel = Adafruit_LSM303_Accel(54321);
 }
 
 DatabaseClass::~DatabaseClass(){
@@ -47,6 +49,13 @@ bool DatabaseClass::newCollection(){
 
     _logfile.close();
 
+    /* Initialise the sensor */
+    if(!_accel.begin())
+    {
+      	/* There was a problem detecting the ADXL345 ... check your connections */
+      	DBPRINTLN("no LSM303!");
+    }
+
 	return true;
 }
 
@@ -54,8 +63,14 @@ bool DatabaseClass::stepForward(uint8_t stepLength) {
 	int timeKeeper1, timeKeeper2;
 	timeKeeper1 = millis();
 
+	sensors_event_t eventAcc; 
+    _accel.getEvent(&eventAcc);
+	_accelRead[_stepCounter][0] = eventAcc.acceleration.x;
+	_accelRead[_stepCounter][1] = eventAcc.acceleration.y;
+	_accelRead[_stepCounter][2] = eventAcc.acceleration.z;
+	DBPRINTLN(eventAcc.acceleration.x);
+
 	_stepCounter = _stepCounter + 1;
-	_accelRead[_stepCounter][0] = _Accelerometer.read();
 	DBPRINT(_stepCounter);
     
     if (_stepCounter >= MAX_STEPS_PER_WRITE) {
@@ -67,6 +82,7 @@ bool DatabaseClass::stepForward(uint8_t stepLength) {
     timeKeeper2 = millis();
 
     if ((timeKeeper2 - timeKeeper1) < stepLength) {
+    	DBPRINT("sleep");
     	RFduino_ULPDelay(MILLISECONDS(stepLength - (timeKeeper2-timeKeeper1)));
     }
 
@@ -82,7 +98,7 @@ bool DatabaseClass::_write2disk() {
 
 	_logfile.print(TIMESTAMP_TYPECODE);
 	_logfile.print(",");
-	_logfile.println(_fakeRTC);
+	_logfile.println(_fakeRTC++);
 
 	DBPRINT("pgm temperature");
 	_logfile.print(TEMPERATURE_TYPECODE);

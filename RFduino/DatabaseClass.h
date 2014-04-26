@@ -10,6 +10,9 @@
 // Accelerometer lib
 #include "AccelerometerClass.h"
 
+#include <Adafruit_Sensor.h>
+#include <Adafruit_LSM303.h>
+
 #define MAX_STEPS_PER_WRITE 40
 
 #define TIMESTAMP_TYPECODE 0x01
@@ -24,7 +27,7 @@ public:
     char _filename[5];
 
 private:
-    AccelerometerClass _Accelerometer;
+    Adafruit_LSM303_Accel _accel;
     float _accelRead[MAX_STEPS_PER_WRITE][3];
 
     uint8_t _stepCounter;

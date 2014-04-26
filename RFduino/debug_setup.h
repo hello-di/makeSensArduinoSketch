@@ -4,7 +4,7 @@
 #endif
 
 #undef DEBUG_FLAG
-//#define DEBUG_FLAG 1
+#define DEBUG_FLAG 1
 
 #ifdef DEBUG_FLAG
 #define DBPRINT(x) Serial.println(x)
