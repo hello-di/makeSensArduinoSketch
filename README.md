@@ -1,7 +1,7 @@
 Make Sens Arduino Source Code
 ===================
 
-This repo is the Arduino source code for the wireless sensor communication system developed by [Di Jiang](http://deene.github.io) and [Carl Zandén](mailto:carl.zanden@chalmers.se). The project was originally called Bodify but later we found this MakeSens name suit better with the goal of this project. Therefore the source code folder name is bodify at this moment, yet it will be replaced with the new project name soon.
+This repo is the Arduino source code for the wireless sensor communication system developed by [Di Jiang](http://deene.github.io) and [Carl Zandén](mailto:carl.zanden@chalmers.se). 
 
 This Arduino project is based on the following open-source Arduino libraries:
 - [Adafruit LSM303](https://github.com/adafruit/Adafruit_LSM303)
